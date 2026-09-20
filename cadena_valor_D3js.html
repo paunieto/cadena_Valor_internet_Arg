@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Cadena de Valor de Internet — Argentina</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #0A0A1A;
+    font-family: 'Courier New', monospace;
+    color: #DDD;
+  }
+  #grafo {
+    width: 100vw;
+    height: 100vh;
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  #titulo {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    pointer-events: none;
+    z-index: 10;
+  }
+  #titulo h1 {
+    color: #00E5FF;
+    font-size: 22px;
+    margin: 0;
+    letter-spacing: 2px;
+  }
+  #titulo p {
+    color: #88DDEE;
+    font-size: 11px;
+    margin: 4px 0 0 0;
+    font-style: italic;
+  }
+  #botones {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    max-width: 95vw;
+    z-index: 10;
+  }
+  .boton {
+    background-color: rgba(0, 229, 255, 0.08);
+    border: 1px solid #00E5FF;
+    color: #00E5FF;
+    padding: 8px 14px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .boton:hover {
+    background-color: rgba(0, 229, 255, 0.25);
+    color: #FFF;
+  }
+  .boton.activo {
+    background-color: rgba(0, 229, 255, 0.35);
+    color: #FFF;
+    border-color: #FFF;
+  }
+  .boton.apagado {
+    background-color: rgba(80, 80, 80, 0.2);
+    color: #666;
+    border-color: #444;
+  }
+  #tooltip {
+    position: absolute;
+    background-color: rgba(10, 10, 26, 0.95);
+    border: 1px solid #00E5FF;
+    color: #DDD;
+    padding: 10px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 20;
+    max-width: 300px;
+    line-height: 1.5;
+  }
+  #tooltip b {
+    color: #00E5FF;
+  }
+  #tooltip .dueno {
+    color: #FFE600;
+    font-size: 11px;
+  }
+  /* Panel de zoom */
+  #zoom-panel {
+    position: absolute;
+    top: 90px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 10;
+  }
+  .zoom-btn {
+    background-color: rgba(0, 229, 255, 0.1);
+    border: 1px solid #00E5FF;
+    color: #00E5FF;
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .zoom-btn:hover {
+    background-color: rgba(0, 229, 255, 0.35);
+    color: #FFF;
+  }
+  /* Leyenda de nodos: abajo a la DERECHA */
+  #leyenda {
+    position: absolute;
+    bottom: 70px;
+    right: 15px;
+    max-height: 60vh;
+    overflow-y: auto;
+    background-color: rgba(10, 10, 26, 0.85);
+    border: 1px solid #00E5FF;
+    border-radius: 4px;
+    padding: 10px 14px;
+    z-index: 10;
+    font-size: 11px;
+    min-width: 170px;
+    max-width: 210px;
+  }
+  #leyenda h3 {
+    color: #00E5FF;
+    margin: 0 0 8px 0;
+    font-size: 12px;
+    letter-spacing: 1px;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.3);
+    padding-bottom: 6px;
+  }
+  .leyenda-capa {
+    margin-bottom: 10px;
+  }
+  .leyenda-capa-titulo {
+    font-weight: bold;
+    margin-bottom: 4px;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+  }
+  .leyenda-nodo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 4px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .leyenda-nodo:hover {
+    background-color: rgba(0, 229, 255, 0.15);
+  }
+  .leyenda-nodo.resaltado {
+    background-color: rgba(255, 230, 0, 0.2);
+    border: 1px solid #FFE600;
+  }
+  .leyenda-nodo .punto {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid #FFF;
+    flex-shrink: 0;
+  }
+  .leyenda-nodo .nombre {
+    color: #DDD;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  #leyenda::-webkit-scrollbar {
+    width: 6px;
+  }
+  #leyenda::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+  }
+  #leyenda::-webkit-scrollbar-thumb {
+    background: rgba(0, 229, 255, 0.4);
+    border-radius: 3px;
+  }
+</style>
+</head>
+<body>
+
+<div id="titulo">
+  <h1>◢ CADENA DE VALOR DE INTERNET — ARGENTINA ◣</h1>
+  <p>// Vista cyberpunk · Arrastrá para explorar · Scroll para zoom · Clic en etiquetas para togglear capas</p>
+</div>
+
+<div id="zoom-panel">
+  <button class="zoom-btn" id="zoom-in" title="Acercar">+</button>
+  <button class="zoom-btn" id="zoom-out" title="Alejar">−</button>
+  <button class="zoom-btn" id="zoom-reset" title="Resetear vista">⟲</button>
+</div>
+
+<div id="leyenda">
+  <h3>◢ LEYENDA DE NODOS</h3>
+  <div id="leyenda-contenido"></div>
+</div>
+
+<div id="botones"></div>
+<div id="tooltip"></div>
+<svg id="grafo"></svg>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+// ============================================================
+// 1. DATOS
+// ============================================================
+const capas = {
+  1: { nombre: "CAPA 1: ACCESO", color: "#00E5FF" },
+  2: { nombre: "CAPA 2: IXP", color: "#FF6B00" },
+  3: { nombre: "CAPA 3: TRANSPORTE", color: "#00FF88" },
+  4: { nombre: "CAPA 4: TRÁNSITO", color: "#FF0055" },
+  5: { nombre: "CAPA 5: CONTENIDO", color: "#B026FF" }
+};
+
+const nodos = [
+  { id: "tt_acc",        capa: 1, nombre: "Telecom-Telefónica Fusión", tamaño: 12, tt: true,  dueno: "Grupo Clarín + David Martínez" },
+  { id: "claro_acc",     capa: 1, nombre: "Claro",                     tamaño: 8,  tt: false, dueno: "América Móvil (Carlos Slim)" },
+  { id: "cabase",        capa: 2, nombre: "CABASE",                    tamaño: 9,  tt: false, dueno: "Asociación civil sin fines de lucro" },
+  { id: "pit",           capa: 2, nombre: "PIT",                       tamaño: 3,  tt: false, dueno: "Operador privado" },
+  { id: "globenet",      capa: 3, nombre: "Globenet",                  tamaño: 6,  tt: false, dueno: "Operador mayorista" },
+  { id: "cirion",        capa: 3, nombre: "Cirion",                    tamaño: 7,  tt: false, dueno: "Stonepeak (ex Lumen)" },
+  { id: "tt_trans",      capa: 3, nombre: "Telecom-Telefónica Fusión", tamaño: 12, tt: true,  dueno: "Grupo Clarín + David Martínez" },
+  { id: "arsat_trans",   capa: 3, nombre: "ARSAT",                     tamaño: 8,  tt: false, dueno: "Estado Nacional" },
+  { id: "silica",        capa: 3, nombre: "Silica",                    tamaño: 6,  tt: false, dueno: "Grupo Datco (Horacio Martínez)" },
+  { id: "metrotel",      capa: 3, nombre: "Metrotel",                  tamaño: 7,  tt: false, dueno: "Riverwood + Blackstone" },
+  { id: "tt_transito",   capa: 4, nombre: "Telecom-Telefónica Fusión", tamaño: 12, tt: true,  dueno: "Grupo Clarín + David Martínez" },
+  { id: "claro_trans",   capa: 4, nombre: "Claro",                     tamaño: 7,  tt: false, dueno: "América Móvil (Carlos Slim)" },
+  { id: "arsat_transito",capa: 4, nombre: "ARSAT",                     tamaño: 6,  tt: false, dueno: "Estado Nacional" },
+  { id: "silica_transito",capa: 4, nombre: "Silica",                   tamaño: 5,  tt: false, dueno: "Grupo Datco" },
+  { id: "cirion_transito",capa: 4, nombre: "Cirion",                   tamaño: 6,  tt: false, dueno: "Stonepeak" },
+  { id: "he",            capa: 4, nombre: "Hurricane Electric",        tamaño: 9,  tt: false, dueno: "Mike Leber (privada)" },
+  { id: "netflix",       capa: 5, nombre: "Netflix",                   tamaño: 7,  tt: false, dueno: "Corporación global" },
+  { id: "google",        capa: 5, nombre: "Google",                    tamaño: 8,  tt: false, dueno: "Alphabet (Vanguard / BlackRock)" },
+  { id: "akamai",        capa: 5, nombre: "Akamai",                    tamaño: 6,  tt: false, dueno: "Vanguard / BlackRock / Capital Research" },
+  { id: "cloudflare",    capa: 5, nombre: "Cloudflare",                tamaño: 9,  tt: false, dueno: "Capital Group / Vanguard / BlackRock" },
+  { id: "fastly",        capa: 5, nombre: "Fastly",                    tamaño: 5,  tt: false, dueno: "BlackRock / Vanguard / FMR" },
+  { id: "amazon",        capa: 5, nombre: "Amazon",                    tamaño: 7,  tt: false, dueno: "Jeff Bezos / Vanguard / BlackRock" },
+  { id: "meta",          capa: 5, nombre: "Meta",                      tamaño: 7,  tt: false, dueno: "Corporación global" }
+];
+
+const links = [
+  { source: "tt_acc",       target: "cabase",         tipo: "fisico" },
+  { source: "claro_acc",    target: "cabase",         tipo: "fisico" },
+  { source: "cabase",       target: "globenet",       tipo: "logico" },
+  { source: "cabase",       target: "cirion",         tipo: "logico" },
+  { source: "cabase",       target: "tt_trans",       tipo: "logico" },
+  { source: "cabase",       target: "arsat_trans",    tipo: "logico" },
+  { source: "cabase",       target: "silica",         tipo: "logico" },
+  { source: "pit",          target: "cirion",         tipo: "logico" },
+  { source: "globenet",     target: "tt_transito",    tipo: "fisico" },
+  { source: "cirion",       target: "tt_transito",    tipo: "fisico" },
+  { source: "tt_trans",     target: "tt_transito",    tipo: "fisico" },
+  { source: "arsat_trans",  target: "arsat_transito", tipo: "fisico" },
+  { source: "silica",       target: "silica_transito",tipo: "fisico" },
+  { source: "metrotel",     target: "claro_trans",    tipo: "logico" },
+  { source: "tt_transito",  target: "he",             tipo: "logico" },
+  { source: "claro_trans",  target: "he",             tipo: "logico" },
+  { source: "cirion_transito", target: "he",          tipo: "logico" },
+  { source: "netflix",      target: "tt_acc",         tipo: "contenido" },
+  { source: "google",       target: "tt_acc",         tipo: "contenido" },
+  { source: "akamai",       target: "tt_acc",         tipo: "contenido" },
+  { source: "cloudflare",   target: "claro_acc",      tipo: "contenido" },
+  { source: "fastly",       target: "cabase",         tipo: "contenido" },
+  { source: "amazon",       target: "cabase",         tipo: "contenido" },
+  { source: "meta",         target: "cabase",         tipo: "contenido" },
+  { source: "cloudflare",   target: "cabase",         tipo: "contenido" },
+  { source: "google",       target: "cabase",         tipo: "contenido" },
+  { source: "akamai",       target: "cabase",         tipo: "contenido" },
+  { source: "netflix",      target: "cabase",         tipo: "contenido" },
+  { source: "tt_acc",       target: "tt_trans",       tipo: "fisico" }
+];
+
+const coloresLink = {
+  fisico:    "#00E5FF",
+  logico:    "#FF6B00",
+  contenido: "#FF00AA"
+};
+
+// ============================================================
+// 2. POSICIONES
+// ============================================================
+const OFFSET_X = 380.0;
+const DISTANCIAS = { 1: 144, 2: 174, 3: 144, 4: 156 };
+const SEPARACION_Y = 75.0;
+
+const posicionesCapa = { 1: OFFSET_X };
+for (let c = 2; c <= 5; c++) {
+  posicionesCapa[c] = posicionesCapa[c-1] + DISTANCIAS[c-1];
+}
+
+nodos.forEach(n => {
+  const nodosCapa = nodos.filter(m => m.capa === n.capa);
+  const idx = nodosCapa.indexOf(n);
+  const n_capa = nodosCapa.length;
+  n.x = posicionesCapa[n.capa];
+  n.y = (idx - (n_capa - 1) / 2) * SEPARACION_Y;
+});
+
+links.forEach(l => {
+  l.sourceNode = nodos.find(n => n.id === l.source);
+  l.targetNode = nodos.find(n => n.id === l.target);
+});
+
+// ============================================================
+// 3. SVG Y ZOOM
+// ============================================================
+const svg = d3.select("#grafo");
+const width = window.innerWidth;
+const height = window.innerHeight;
+
+svg.attr("width", width).attr("height", height);
+
+const g = svg.append("g").attr("class", "root");
+
+const defs = svg.append("defs");
+const glow = defs.append("filter")
+  .attr("id", "glow")
+  .attr("x", "-50%").attr("y", "-50%")
+  .attr("width", "200%").attr("height", "200%");
+glow.append("feGaussianBlur").attr("stdDeviation", "8").attr("result", "coloredBlur");
+const feMerge = glow.append("feMerge");
+feMerge.append("feMergeNode").attr("in", "coloredBlur");
+feMerge.append("feMergeNode").attr("in", "SourceGraphic");
+
+const zoom = d3.zoom()
+  .scaleExtent([0.02, 5])
+  .on("zoom", (event) => {
+    g.attr("transform", event.transform);
+  });
+svg.call(zoom);
+
+const xCentro = (posicionesCapa[1] + posicionesCapa[5]) / 2;
+const yCentro = 0;
+const escalaInicial = Math.min(width / 1200, height / 600);
+
+const transformInicial = d3.zoomIdentity
+  .translate(width / 2, height / 2)
+  .scale(escalaInicial)
+  .translate(-xCentro, -yCentro);
+
+svg.call(zoom.transform, transformInicial);
+
+document.getElementById("zoom-in").onclick = () => {
+  svg.transition().duration(300).call(zoom.scaleBy, 1.4);
+};
+document.getElementById("zoom-out").onclick = () => {
+  svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+};
+document.getElementById("zoom-reset").onclick = () => {
+  svg.transition().duration(500).call(zoom.transform, transformInicial);
+};
+
+// ============================================================
+// 4. DIBUJAR
+// ============================================================
+const columnasGroup = g.append("g").attr("class", "columnas");
+for (let c = 1; c <= 5; c++) {
+  const nodosCapa = nodos.filter(n => n.capa === c);
+  const ys = nodosCapa.map(n => n.y);
+  const yMin = Math.min(...ys) - 30.0;
+  const yMax = Math.max(...ys) + 30.0;
+  const xCentro = posicionesCapa[c];
+  const ancho = 35.0;
+
+  columnasGroup.append("rect")
+    .attr("x", xCentro - ancho / 2)
+    .attr("y", yMin)
+    .attr("width", ancho)
+    .attr("height", yMax - yMin)
+    .attr("fill", capas[c].color)
+    .attr("fill-opacity", 0.05)
+    .attr("stroke", capas[c].color)
+    .attr("stroke-opacity", 0.3)
+    .attr("stroke-width", 4)
+    .attr("rx", 8);
+}
+
+const linksGroup = g.append("g").attr("class", "links");
+links.forEach(l => {
+  l.element = linksGroup.append("line")
+    .attr("x1", l.sourceNode.x).attr("y1", l.sourceNode.y)
+    .attr("x2", l.targetNode.x).attr("y2", l.targetNode.y)
+    .attr("stroke", coloresLink[l.tipo])
+    .attr("stroke-opacity", 0.5)
+    .attr("stroke-width", l.tipo === "fisico" ? 6 : (l.tipo === "logico" ? 5 : 3));
+});
+
+const nodosGroup = g.append("g").attr("class", "nodos");
+nodos.forEach(n => {
+  const color = capas[n.capa].color;
+  const r = n.tamaño * 2.2;
+
+  n.halo = nodosGroup.append("circle")
+    .attr("cx", n.x).attr("cy", n.y)
+    .attr("r", r * 1.8)
+    .attr("fill", color)
+    .attr("fill-opacity", 0.15)
+    .attr("filter", "url(#glow)");
+
+  n.nucleo = nodosGroup.append("circle")
+    .attr("cx", n.x).attr("cy", n.y)
+    .attr("r", r)
+    .attr("fill", color)
+    .attr("stroke", "#FFF")
+    .attr("stroke-width", 1.5)
+    .attr("stroke-opacity", 0.9)
+    .attr("fill-opacity", 0.92)
+    .style("cursor", "pointer");
+
+  const lineas = n.nombre === "Telecom-Telefónica Fusión"
+    ? ["Telecom-", "Telefónica", "Fusión"]
+    : n.nombre.split(" ");
+
+  n.texto = nodosGroup.append("text")
+    .attr("x", n.x).attr("y", n.y)
+    .attr("text-anchor", "middle")
+    .attr("dominant-baseline", "middle")
+    .attr("font-family", "Verdana, Arial, sans-serif")
+    .attr("font-size", 6)
+    .attr("font-weight", "bold")
+    .attr("fill", "#000")
+    .style("pointer-events", "none");
+
+  lineas.forEach((linea, i) => {
+    n.texto.append("tspan")
+      .attr("x", n.x)
+      .attr("dy", i === 0 ? `${(lineas.length - 1) * -0.5}em` : "1em")
+      .text(linea);
+  });
+
+  n.nucleo.on("mouseover", (event) => {
+    const tooltip = document.getElementById("tooltip");
+    tooltip.innerHTML = `
+      <b>${n.nombre}</b><br>
+      <span style="color:#88DDEE">Capa:</span> ${n.capa}<br>
+      <span class="dueno">Dueño: ${n.dueno}</span><br>
+      <span style="color:#88DDEE">Conexiones:</span> ${links.filter(l => l.source === n.id || l.target === n.id).length}
+    `;
+    tooltip.style.opacity = 1;
+  })
+  .on("mousemove", (event) => {
+    const tooltip = document.getElementById("tooltip");
+    tooltip.style.left = (event.pageX + 15) + "px";
+    tooltip.style.top = (event.pageY + 15) + "px";
+  })
+  .on("mouseout", () => {
+    document.getElementById("tooltip").style.opacity = 0;
+  });
+});
+
+// --- Etiquetas de capa CLICKEABLES ---
+const etiquetasGroup = g.append("g").attr("class", "etiquetas");
+const yMinGlobal = Math.min(...nodos.map(n => n.y));
+const yEtiqueta = yMinGlobal - 30.0;
+
+const estadoCapas = { 1: true, 2: true, 3: true, 4: true, 5: true };
+const etiquetasElementos = {};
+
+for (let c = 1; c <= 5; c++) {
+  const etiquetaGrupo = etiquetasGroup.append("g")
+    .attr("class", `etiqueta-capa-${c}`)
+    .style("cursor", "pointer")
+    .on("click", () => toggleCapa(c))
+    .on("mouseover", function() {
+      if (estadoCapas[c]) {
+        d3.select(this).select("text").attr("font-size", 17);
+      }
+    })
+    .on("mouseout", function() {
+      d3.select(this).select("text").attr("font-size", 15);
+    });
+
+  etiquetaGrupo.append("rect")
+    .attr("x", posicionesCapa[c] - 100)
+    .attr("y", yEtiqueta - 20)
+    .attr("width", 200)
+    .attr("height", 28)
+    .attr("fill", "transparent");
+
+  etiquetaGrupo.append("text")
+    .attr("x", posicionesCapa[c]).attr("y", yEtiqueta)
+    .attr("text-anchor", "middle")
+    .attr("font-family", "'Arial Narrow', 'Roboto Condensed', Impact, sans-serif")
+    .attr("font-size", 15)
+    .attr("font-weight", "bold")
+    .attr("letter-spacing", "-0.5px")
+    .attr("fill", capas[c].color)
+    .text(capas[c].nombre);
+
+  etiquetasElementos[c] = etiquetaGrupo;
+}
+
+function toggleCapa(c) {
+  estadoCapas[c] = !estadoCapas[c];
+  actualizarVisibilidad();
+  actualizarEstiloEtiquetas();
+}
+
+function actualizarEstiloEtiquetas() {
+  for (let c = 1; c <= 5; c++) {
+    etiquetasElementos[c].select("text")
+      .attr("opacity", estadoCapas[c] ? 1 : 0.3)
+      .attr("fill", estadoCapas[c] ? capas[c].color : "#666");
+  }
+}
+
+// --- Ícono de la usuaria final (más a la izquierda para separarla del grafo) ---
+const usuarioGroup = g.append("g").attr("class", "usuario");
+
+usuarioGroup.append("text")
+  .attr("x", 200).attr("y", 0)           // <-- antes 320, ahora 200
+  .attr("text-anchor", "middle")
+  .attr("dominant-baseline", "middle")
+  .attr("font-size", 30)
+  .text("👩‍💻");
+
+usuarioGroup.append("text")
+  .attr("x", 200).attr("y", -22)          // <-- antes 320, ahora 200
+  .attr("text-anchor", "middle")
+  .attr("font-family", "Courier New, monospace")
+  .attr("font-size", 10)
+  .attr("font-weight", "bold")
+  .attr("fill", "#88DDEE")
+  .text("USUARIA FINAL");
+
+// ============================================================
+// 5. LEYENDA DE NODOS
+// ============================================================
+const leyendaContenido = document.getElementById("leyenda-contenido");
+const nodoResaltado = { valor: null };
+const leyendaElementos = {};
+
+for (let c = 1; c <= 5; c++) {
+  const nodosCapa = nodos.filter(n => n.capa === c);
+
+  const capaDiv = document.createElement("div");
+  capaDiv.className = "leyenda-capa";
+  capaDiv.innerHTML = `<div class="leyenda-capa-titulo" style="color:${capas[c].color}">${capas[c].nombre}</div>`;
+
+  nodosCapa.forEach(n => {
+    const nodoDiv = document.createElement("div");
+    nodoDiv.className = "leyenda-nodo";
+    nodoDiv.innerHTML = `
+      <div class="punto" style="background:${capas[c].color}"></div>
+      <div class="nombre">${n.nombre}</div>
+    `;
+    nodoDiv.onclick = () => toggleResaltarNodo(n.id);
+    capaDiv.appendChild(nodoDiv);
+    leyendaElementos[n.id] = nodoDiv;
+  });
+
+  leyendaContenido.appendChild(capaDiv);
+}
+
+function toggleResaltarNodo(id) {
+  if (nodoResaltado.valor === id) {
+    nodoResaltado.valor = null;
+  } else {
+    nodoResaltado.valor = id;
+  }
+  actualizarVisibilidad();
+  actualizarEstiloLeyenda();
+}
+
+function actualizarEstiloLeyenda() {
+  for (let id in leyendaElementos) {
+    if (id === nodoResaltado.valor) {
+      leyendaElementos[id].classList.add("resaltado");
+    } else {
+      leyendaElementos[id].classList.remove("resaltado");
+    }
+  }
+}
+
+// ============================================================
+// 6. BOTONES (solo links)
+// ============================================================
+const estadoLinks = { fisico: true, logico: true, contenido: true };
+
+const botonesDiv = document.getElementById("botones");
+
+const btnTodo = document.createElement("button");
+btnTodo.className = "boton";
+btnTodo.textContent = "Mostrar todo";
+btnTodo.onclick = () => {
+  for (let c = 1; c <= 5; c++) estadoCapas[c] = true;
+  for (let t in estadoLinks) estadoLinks[t] = true;
+  nodoResaltado.valor = null;
+  actualizarBotones();
+  actualizarVisibilidad();
+  actualizarEstiloEtiquetas();
+  actualizarEstiloLeyenda();
+};
+botonesDiv.appendChild(btnTodo);
+
+const botonesLink = {};
+for (let t in estadoLinks) {
+  const btn = document.createElement("button");
+  btn.className = "boton";
+  btn.textContent = t === "fisico" ? "Links Físicos" : (t === "logico" ? "Links Lógicos" : "Links de Contenido");
+  btn.onclick = () => {
+    estadoLinks[t] = !estadoLinks[t];
+    actualizarBotones();
+    actualizarVisibilidad();
+  };
+  botonesDiv.appendChild(btn);
+  botonesLink[t] = btn;
+}
+
+function actualizarBotones() {
+  for (let t in estadoLinks) {
+    botonesLink[t].classList.toggle("apagado", !estadoLinks[t]);
+    botonesLink[t].classList.toggle("activo", estadoLinks[t]);
+  }
+}
+
+// ============================================================
+// 7. VISIBILIDAD
+// ============================================================
+function actualizarVisibilidad() {
+  nodos.forEach(n => {
+    const visibleCapa = estadoCapas[n.capa];
+    const resaltado = nodoResaltado.valor;
+    let opacidad = 1;
+
+    if (!visibleCapa) opacidad = 0.1;
+    else if (resaltado && resaltado !== n.id) opacidad = 0.15;
+
+    n.nucleo.attr("opacity", opacidad);
+    n.halo.attr("opacity", opacidad * 0.15);
+    n.texto.attr("opacity", opacidad);
+
+    if (resaltado === n.id) {
+      n.nucleo.attr("stroke", "#FFE600").attr("stroke-width", 4);
+      n.halo.attr("fill-opacity", 0.4);
+    } else {
+      n.nucleo.attr("stroke", "#FFF").attr("stroke-width", 1.5);
+      n.halo.attr("fill-opacity", 0.15);
+    }
+  });
+
+  links.forEach(l => {
+    let visible = estadoLinks[l.tipo] &&
+                  estadoCapas[l.sourceNode.capa] &&
+                  estadoCapas[l.targetNode.capa];
+
+    if (nodoResaltado.valor) {
+      const conecta = (l.source === nodoResaltado.valor || l.target === nodoResaltado.valor);
+      if (!conecta) visible = false;
+    }
+
+    l.element.attr("stroke-opacity", visible ? 0.5 : 0.03);
+  });
+}
+
+actualizarBotones();
+
+// ============================================================
+// 8. RESPONSIVE
+// ============================================================
+window.addEventListener("resize", () => {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  svg.attr("width", w).attr("height", h);
+});
+</script>
+</body>
+</html>
